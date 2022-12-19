@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<objects xmlns="http://www.springframework.net">
+	<object type="Spring.Objects.Factory.Config.VariablePlaceholderConfigurer, Spring.Core">
+		<property name="VariableSources">
+			<list>
+				<object type="Spring.Objects.Factory.Config.EnvironmentVariableSource, Spring.Core"/>
+			</list>
+		</property>
+	</object>
+	<object id="HomePath" type="SkylinesTelemetryMod.SkylinesTelemetryConf" factory-method="HomePath" />
+	<object id="PublisherStringSerializer" type="SkylinesTelemetryMod.Publisher.PublisherStringSerializer" />
+	<object id="Bindings" type="SkylinesTelemetryMod.Bindings.Native.SafeKafkaBindings">
+		<constructor-arg ref="HomePath" />
+	</object>
+	<object id="Conf" type="SkylinesTelemetryMod.Bindings.KafkaConf">
+		<constructor-arg ref="Bindings" />
+		<constructor-arg>
+			<dictionary key-type="string" value-type="string">
+				<entry key="bootstrap.servers" value="${SkylinesTelemetryBootstrapServers}" />
+			</dictionary>
+		</constructor-arg>
+	</object>
+	<object id="Kafka" type="SkylinesTelemetryMod.Bindings.KafkaHandle">
+		<constructor-arg ref="Bindings" />
+		<constructor-arg>
+			<value type="SkylinesTelemetryMod.Bindings.Native.KafkaDefs+rd_kafka_type">RD_KAFKA_PRODUCER</value>
+		</constructor-arg>
+		<constructor-arg ref="Conf" />
+	</object>
+	<object id="PublisherService" type="SkylinesTelemetryMod.Publisher.SkylinesTelemetryPublisherService&lt;string, string>">
+		<constructor-arg ref="Kafka" />
+		<constructor-arg ref="PublisherStringSerializer"/>
+		<constructor-arg ref="PublisherStringSerializer" />
+	</object>
+</objects>
