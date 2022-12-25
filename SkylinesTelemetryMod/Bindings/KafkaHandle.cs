@@ -1,15 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using SkylinesTelemetryMod.Bindings.Native;
-using Spring.Stereotype;
 using static SkylinesTelemetryMod.Bindings.Native.KafkaDefs;
 
 namespace SkylinesTelemetryMod.Bindings
 {
-    [Component]
     public class KafkaHandle : IDisposable
     {
         private readonly SafeKafkaBindings _kafka;
@@ -33,7 +29,7 @@ namespace SkylinesTelemetryMod.Bindings
 
         public bool Produce(string topic, byte[] key, byte[] value)
         {
-            var success = false; 
+            var success = false;
             var topicPtr = Marshal.StringToHGlobalAnsi(topic);
             unsafe
             {

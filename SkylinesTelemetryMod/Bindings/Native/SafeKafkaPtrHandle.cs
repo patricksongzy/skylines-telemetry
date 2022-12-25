@@ -5,7 +5,7 @@ namespace SkylinesTelemetryMod.Bindings.Native
 {
     internal abstract class SafeKafkaPtrHandle : SafeHandle
     {
-        private SafeKafkaBindings _kafka;
+        private SafeKafkaBindings? _kafka;
 
         protected SafeKafkaPtrHandle(bool ownsHandle) : base(IntPtr.Zero, ownsHandle)
         {

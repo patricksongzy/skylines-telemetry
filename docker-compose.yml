@@ -27,6 +27,26 @@ services:
     volumes:
       - kafkadata:/var/lib/kafka/data
       - kafkasecrets:/etc/kafka/secrets
+  jobmanager:
+    image: flink:java8
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    volumes:
+      - ./skylines-processing/target/skylines-processing-0.1.0-shaded.jar:/opt/flink/usrlib/skylines-processing.jar
+      - ./skylines-conf:/opt/flink/conf
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+  taskmanager:
+    image: flink:java8
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    volumes:
+      - ./target/skylines-processing-0.1.0-shaded.jar:/opt/flink/usrlib/skylines-processing.jar
+      - ./skylines-conf:/opt/flink/conf
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
 volumes:
   kafkadata:
   kafkasecrets:

@@ -48,7 +48,7 @@ namespace SkylinesTelemetryMod.Bindings.Native
             RD_KAFKA_VTYPE_HEADERS,
         }
 
-        public enum rk_msgflags:int
+        public enum rk_msgflags : int
         {
             EMPTY = 0x0,
             RK_MSG_FREE = 0x1,

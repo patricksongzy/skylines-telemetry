@@ -7,8 +7,8 @@
 			</list>
 		</property>
 	</object>
-	<object id="HomePath" type="SkylinesTelemetryMod.SkylinesTelemetryConf" factory-method="HomePath" />
-	<object id="PublisherStringSerializer" type="SkylinesTelemetryMod.Publisher.PublisherStringSerializer" />
+	<object id="HomePath" type="SkylinesTelemetryMod.SkylinesGame" factory-method="HomePath" />
+	<object id="PublisherStringSerializer" type="SkylinesTelemetryMod.Publisher.Serde.PublisherStringSerializer" />
 	<object id="Bindings" type="SkylinesTelemetryMod.Bindings.Native.SafeKafkaBindings">
 		<constructor-arg ref="HomePath" />
 	</object>
@@ -31,5 +31,35 @@
 		<constructor-arg ref="Kafka" />
 		<constructor-arg ref="PublisherStringSerializer"/>
 		<constructor-arg ref="PublisherStringSerializer" />
+	</object>
+	<object id="VehicleMapper" type="SkylinesTelemetryMod.Mapper.VehicleMapper" />
+	<object id="FireUpdaterService" type="SkylinesTelemetryMod.Collector.Updater.ServiceVehicleUpdaterService">
+		<constructor-arg>
+			<value type="ItemClass+Service">FireDepartment</value>
+		</constructor-arg>
+		<constructor-arg ref="VehicleMapper" />
+	</object>
+	<object id="HealthUpdaterService" type="SkylinesTelemetryMod.Collector.Updater.ServiceVehicleUpdaterService">
+		<constructor-arg>
+			<value type="ItemClass+Service">HealthCare</value>
+		</constructor-arg>
+		<constructor-arg ref="VehicleMapper" />
+	</object>
+	<object id="GarbageUpdaterService" type="SkylinesTelemetryMod.Collector.Updater.ServiceVehicleUpdaterService">
+		<constructor-arg>
+			<value type="ItemClass+Service">Garbage</value>
+		</constructor-arg>
+		<constructor-arg ref="VehicleMapper" />
+	</object>
+	<object id="TransferUpdaterService" type="SkylinesTelemetryMod.Collector.Updater.TransferUpdaterService" />
+	<object type="System.Collections.Generic.Dictionary&lt;string, SkylinesTelemetryMod.Collector.Updater.IThreadingExtensionUpdaterService>">
+		<constructor-arg>
+			<dictionary id="ThreadingExtensionUpdaters" key-type="System.String" value-type="SkylinesTelemetryMod.Collector.Updater.IThreadingExtensionUpdaterService">
+				<entry key="in.telemetry.vehicle.fire" value-ref="FireUpdaterService" />
+				<entry key="in.telemetry.vehicle.health" value-ref="HealthUpdaterService" />
+				<entry key="in.telemetry.vehicle.garbage" value-ref="GarbageUpdaterService" />
+				<entry key="in.telemetry.transfer" value-ref="TransferUpdaterService" />
+			</dictionary>
+		</constructor-arg>
 	</object>
 </objects>

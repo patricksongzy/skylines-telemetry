@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using SkylinesTelemetryMod.Bindings.Native;
-using Spring.Stereotype;
 
 namespace SkylinesTelemetryMod.Bindings
 {
-    [Component]
     public class KafkaConf : IDisposable
     {
         internal SafeKafkaConf ConfHandle { get; }

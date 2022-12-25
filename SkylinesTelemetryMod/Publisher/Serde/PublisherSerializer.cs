@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SkylinesTelemetryMod.Publisher
+namespace SkylinesTelemetryMod.Publisher.Serde
 {
     public class PublisherStringSerializer : IPublisherSerializer<string>
     {

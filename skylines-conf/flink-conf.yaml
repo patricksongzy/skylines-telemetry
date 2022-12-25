@@ -1,0 +1,9 @@
+jobmanager.rpc.address: jobmanager
+blob.server.port: 6124
+query.server.port: 6125
+
+classloader.resolve-order: parent-first
+jobmanager.memory.process.size: 2G
+taskmanager.memory.process.size: 2G
+
+akka.framesize: 104857600b

@@ -1,4 +1,4 @@
-namespace SkylinesTelemetryMod.Publisher
+namespace SkylinesTelemetryMod.Publisher.Serde
 {
     public interface IPublisherSerializer<in T>
     {
