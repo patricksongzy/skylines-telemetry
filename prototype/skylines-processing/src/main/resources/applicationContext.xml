@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+    <context:component-scan base-package="patricksongzy"/>
+    <bean id="env" class="org.apache.flink.streaming.api.environment.StreamExecutionEnvironment" factory-method="getExecutionEnvironment"/>
+    <bean id="heartbeatSource" class="patricksongzy.skylines.processing.data.KafkaJsonTopicSourceFactoryBean">
+        <property name="topic" value="telemetry.heartbeat"/>
+        <property name="genericType" value="patricksongzy.skylines.processing.data.sensor.Heartbeat"/>
+    </bean>
+    <bean id="ambulanceSource" class="patricksongzy.skylines.processing.data.KafkaJsonTopicSourceFactoryBean">
+        <property name="topic" value="telemetry.ambulance"/>
+        <property name="genericType" value="patricksongzy.skylines.processing.data.sensor.AmbulanceTelemetry"/>
+    </bean>
+    <bean id="hospitalSource" class="patricksongzy.skylines.processing.data.KafkaJsonTopicSourceFactoryBean">
+        <property name="topic" value="telemetry.hospital"/>
+        <property name="genericType" value="patricksongzy.skylines.processing.data.sensor.HospitalTelemetry"/>
+    </bean>
+    <bean id="incidentSource" class="patricksongzy.skylines.processing.data.KafkaJsonTopicSourceFactoryBean">
+        <property name="topic" value="telemetry.incident"/>
+        <property name="genericType" value="patricksongzy.skylines.processing.data.sensor.IncidentTelemetry"/>
+    </bean>
+</beans>

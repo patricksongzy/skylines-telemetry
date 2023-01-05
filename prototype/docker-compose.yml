@@ -1,0 +1,96 @@
+version: "3.9"
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zkdata:/var/lib/zookeeper/data
+      - zklog:/var/lib/zookeeper/log
+      - zksecrets:/etc/zookeeper/secrets
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+      - kafkasecrets:/etc/kafka/secrets
+  tomcat:
+    image: tomcat:9.0.68-jre8-temurin-focal
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./skylines-websocket/target/:/usr/local/tomcat/webapps/
+  jobmanager:
+    image: flink:java8
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    volumes:
+      - ./skylines-processing/target/skylines-telemetry-0.1.0.jar:/opt/flink/usrlib/skylines-telemetry.jar
+      - ./skylines-conf:/opt/flink/conf
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+  taskmanager:
+    image: flink:java8
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    volumes:
+      - ./target/skylines-telemetry-0.1.0-shaded.jar:/opt/flink/usrlib/skylines-telemetry.jar
+      - ./skylines-conf:/opt/flink/conf
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+  timescale:
+    image: timescale/timescaledb-ha:pg14.5-ts2.8.1-p3
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: skylinestelemetry
+    volumes:
+      - tsdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+  liquibase:
+    image: liquibase/liquibase:4.17
+    depends_on:
+      timescale:
+        condition: service_healthy
+    volumes:
+      - ./skylines-liquibase/changelog:/liquibase/changelog
+      - lbclasspath:/liquibase/classpath
+    command: --defaults-file=/liquibase/changelog/liquibase.properties update
+  # grafana:
+  #   image: grafana/grafana-oss:8.5.15
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./grafana:/var/lib/grafana
+  dash:
+    build: ./skylines-dash
+    ports:
+      - "8050:8050"
+volumes:
+  kafkadata:
+  kafkasecrets:
+  lbclasspath:
+  tsdata:
+  zkdata:
+  zklog:
+  zksecrets:

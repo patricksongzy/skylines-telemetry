@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+		http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+		http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <changeSet id="create-ambulance-trip-segments" author="patricksongzy">
+        <sql>
+            create table ambulance_trip_segment (
+                time timestamp not null,
+                trip_id text not null,
+                ambulance_id bigint not null,
+                state text not null
+            );
+
+            select create_hypertable('ambulance_trip_segment', 'time');
+            create index ix_segment_ids_time on ambulance_trip_segment (time desc, trip_id, ambulance_id);
+        </sql>
+    </changeSet>
+    <changeSet id="create-hospital" author="patricksongzy">
+        <sql>
+            create table hospital (
+                id text primary key,
+                x double precision not null,
+                y double precision not null,
+                ambulances integer not null
+            );
+        </sql>
+    </changeSet>
+    <changeSet id="create-incident" author="patricksongzy">
+        <sql>
+            create table incident (
+                id text primary key,
+                time timestamp not null,
+                enroute_time timestamp,
+                citizen_id bigint not null,
+                building_id bigint not null,
+                priority int not null,
+                in_ambulance boolean not null,
+                x double precision not null,
+                y double precision not null
+            );
+        </sql>
+    </changeSet>
+    <changeSet id="create-ambulance-data" author="">
+        <sql>
+            create table ambulance_data (
+                time timestamp not null,
+                ambulance_id bigint not null,
+                speed double precision not null,
+                x double precision not null,
+                y double precision not null
+            );
+
+            select create_hypertable('ambulance_data', 'time');
+            create index ix_ambulance_ids_time on ambulance_data (time desc, ambulance_id);
+        </sql>
+    </changeSet>
+</databaseChangeLog>
