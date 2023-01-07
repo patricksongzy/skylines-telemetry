@@ -14,13 +14,16 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import patricksongzy.skylinestelemetry.processing.data.Complex;
 import patricksongzy.skylinestelemetry.processing.data.transfer.CorrelatedTransfer;
 import patricksongzy.skylinestelemetry.processing.data.transfer.EnrichedTransfer;
 import patricksongzy.skylinestelemetry.processing.data.transfer.EnrichedTransferData;
@@ -29,6 +32,7 @@ import patricksongzy.skylinestelemetry.processing.data.vehicle.EnrichedVehicleDa
 import patricksongzy.skylinestelemetry.processing.skylines.TransferReason;
 import patricksongzy.skylinestelemetry.processing.skylines.VehicleCategory;
 import patricksongzy.skylinestelemetry.processing.skylines.VehicleFlag;
+import patricksongzy.skylinestelemetry.processing.stream.FourierWindowFunction;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -47,47 +51,16 @@ public class SkylinesProcessing {
         WatermarkStrategy<ObjectNode> watermarkStrategy = WatermarkStrategy.<ObjectNode>forBoundedOutOfOrderness(Duration.ofMinutes(1))
                 .withTimestampAssigner((event, timestamp) -> Instant.parse(event.get("Timestamp").asText()).toEpochMilli()).withIdleness(Duration.ofSeconds(1));
 
-//        double[] in = new double[] { 1, 1, 1, 1, 1, 1, 1, 1 };
-//        Complex[] res = new Complex[in.length];
-//        Arrays.fill(res, new Complex(Runtime.getSystemRuntime()));
-//        Pointer resPtr = Memory.allocateDirect(Runtime.getRuntime(fourier), Struct.size(Complex.class) * in.length);
-//        fourier.rfft(in, resPtr, in.length);
-//        Complex cur = new Complex(Runtime.getSystemRuntime());
-//        cur.useMemory(resPtr.slice(0, Struct.size(Complex.class)));
-//        System.out.println(cur.re);
-//        System.out.println(cur.im);
-
         KafkaSource<ObjectNode> citySource = getSource("in.telemetry.city");
         DataStream<ObjectNode> cityStream = env.fromSource(citySource, watermarkStrategy, "in.telemetry.city");
-        DataStream<Long> populationStream = cityStream.map(c -> c.get("Population").asLong());
+        DataStream<Long> deathsStream = cityStream.map(c -> c.get("Deaths").asLong());
         // this is actually pretty bad, since the window is really large and the slide is small
         // an iterative DFT or similar would be a smarter idea, as this would allow us to reuse our computations
         // but because this is for experimentation, we will just use an RFFT for now
-        final long COMPLEX_SIZE = Struct.size(Complex.class);
+        DataStream<Complex[]> deathsFrequencyDomain = deathsStream.windowAll(SlidingEventTimeWindows.of(Time.days(3650), Time.days(365))).apply(new FourierWindowFunction());
+
         // cim lifespan is about 6 years
         final int CIM_LIFESPAN = 6;
-        DataStream<Complex[]> populationFrequencyDomain = populationStream.windowAll(SlidingEventTimeWindows.of(Time.days(3650), Time.days(365))).apply((window, values, out) -> {
-            // this probably isn't good, but we'll do this until we find a solution
-            SkylinesFourier fourier = LibraryLoader.create(SkylinesFourier.class).search(".").load("skylines_fourier_ffi");
-            // we use a simple difference-based detrending for now
-            List<Double> data = new ArrayList<>();
-            Iterator<Long> it = values.iterator();
-            long previous = it.next();
-            while (it.hasNext()) {
-                data.add((double) (it.next() - previous));
-            }
-            Pointer resultPtr = Memory.allocateDirect(Runtime.getRuntime(fourier), COMPLEX_SIZE * data.size());
-            fourier.rfft(data.size(), data.stream().mapToDouble(Double::doubleValue).toArray(), resultPtr);
-            Complex[] output = new Complex[data.size()];
-            for (int i = 0; i < data.size(); i++) {
-                output[i] = new Complex(Runtime.getSystemRuntime());
-                output[i].useMemory(resultPtr.slice((long) i * COMPLEX_SIZE, COMPLEX_SIZE));
-            }
-            // the sample period is the window size divided by the number of samples in years
-            Pointer frequencyResultPtr = Memory.allocateDirect(Runtime.getRuntime(fourier), Long.BYTES * data.size());
-            fourier.get_real_frequencies(data.size(), 3650.0 / data.size(), frequencyResultPtr);
-            out.collect(output);
-        }, TypeInformation.of(Complex[].class));
 
         // just about everything in this game is considered a material
         // we break problems down into:
@@ -149,21 +122,6 @@ public class SkylinesProcessing {
 
         DataStream<CorrelatedTransfer> unfulfilledGarbage = garbagePileups.filter(g -> g.getVehicle() == null);
         DataStream<CorrelatedTransfer> lateGarbage = garbagePileups.filter(g -> g.getVehicle() != null);
-    }
-
-    public interface SkylinesFourier {
-        void rfft(@In @size_t long signal_length, @In double[] input_signal, @Out Pointer output_signal);
-        void get_real_frequencies(@In @size_t long signal_length, @In double sample_period, @Out Pointer result_buffer);
-    }
-
-    public static final class Complex extends Struct {
-        public Struct.Double re;
-        public Struct.Double im;
-        public Complex(final Runtime runtime) {
-            super(runtime);
-            re = new Double();
-            im = new Double();
-        }
     }
 
     /**
